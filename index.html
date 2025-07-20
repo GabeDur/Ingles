@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Juego de Relacionar Palabras</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      text-align: center;
+      padding: 40px;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    .container {
+      display: flex;
+      justify-content: center;
+      gap: 80px;
+      margin-top: 30px;
+    }
+
+    .columns-wrapper {
+      display: flex;
+      gap: 20px;
+    }
+
+    .column {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .word {
+      padding: 10px 15px;
+      background-color: #fff;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s, border-color 0.3s;
+      width: 120px;
+      text-align: center;
+    }
+
+    .word:hover {
+      background-color: #eef;
+    }
+
+    .selected {
+      background-color: #ffe082 !important;
+      border-color: #ffb300 !important;
+    }
+
+    .matched {
+      background-color: #c8e6c9;
+      border-color: #2e7d32;
+      pointer-events: none;
+    }
+
+    .incorrect {
+      background-color: #ffcdd2;
+      border-color: #c62828;
+    }
+
+    .reset, .next-level {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 6px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .finished-message {
+      font-size: 24px;
+      margin-top: 30px;
+      color: #2e7d32;
+    }
+
+  </style>
+</head>
+<body>
+  <h1>Relaciona las Palabras</h1>
+  <p>Haz clic en una palabra en inglés para escucharla, y luego en su traducción en español.</p>
+
+  <div class="container">
+    <div class="columns-wrapper" id="english-wrapper"></div>
+    <div class="columns-wrapper" id="spanish-wrapper"></div>
+  </div>
+
+  <button class="reset" onclick="resetGame()">Reiniciar</button>
+  <button class="next-level hidden" onclick="nextLevel()">Siguiente Nivel</button>
+
+  <div class="finished-message hidden" id="end-message">¡Has completado todas las palabras! 🎉</div>
+
+  <script>
+    const allWords = [
+      { en: "Dog", es: "Perro" },
+      { en: "House", es: "Casa" },
+      { en: "Sun", es: "Sol" },
+      { en: "Water", es: "Agua" },
+      { en: "Book", es: "Libro" },
+      { en: "Tree", es: "Árbol" },
+      { en: "Sky", es: "Cielo" },
+      { en: "Car", es: "Coche" },
+      { en: "Food", es: "Comida" },
+      { en: "Chair", es: "Silla" },
+      { en: "Window", es: "Ventana" },
+      { en: "Light", es: "Luz" },
+      { en: "Love", es: "Amor" },
+      { en: "Cold", es: "Frío" },
+      { en: "Sleep", es: "Dormir" },
+      { en: "Phone", es: "Teléfono" },
+      { en: "Mountain", es: "Montaña" },
+      { en: "Beach", es: "Playa" },
+      { en: "Bird", es: "Pájaro" },
+      { en: "Rain", es: "Lluvia" }
+    ];
+
+    let nivel = 0;
+    const palabrasPorNivel = 8;
+    let palabrasRevisadas = [];
+    let currentWords = [];
+    let selectedEnglish = null;
+    let matchedPairs = [];
+
+    function speak(word) {
+      const utter = new SpeechSynthesisUtterance(word);
+      utter.lang = "en-US";
+      speechSynthesis.speak(utter);
+    }
+
+    function resetGame() {
+      nivel = 0;
+      palabrasRevisadas = [];
+      document.querySelector(".next-level").classList.add("hidden");
+      document.getElementById("end-message").classList.add("hidden");
+      startGame();
+    }
+
+    function nextLevel() {
+      nivel++;
+      document.querySelector(".next-level").classList.add("hidden");
+      startGame();
+    }
+
+    function startGame() {
+      selectedEnglish = null;
+      matchedPairs = [];
+
+      const remainingWords = allWords.filter(w => !palabrasRevisadas.includes(w.en));
+      const cantidad = Math.min(palabrasPorNivel, remainingWords.length);
+      currentWords = remainingWords.slice(0, cantidad);
+
+      // Marcar como ya revisadas
+      palabrasRevisadas.push(...currentWords.map(w => w.en));
+
+      // Mostrar mensaje final si no hay más palabras
+      if (currentWords.length === 0) {
+        document.getElementById("end-message").classList.remove("hidden");
+        return;
+      }
+
+      const englishWrapper = document.getElementById('english-wrapper');
+      const spanishWrapper = document.getElementById('spanish-wrapper');
+      englishWrapper.innerHTML = "";
+      spanishWrapper.innerHTML = "";
+
+      const englishWords = [...currentWords].sort(() => Math.random() - 0.5);
+      const spanishWords = [...currentWords].sort(() => Math.random() - 0.5);
+
+      renderInColumns(englishWords, englishWrapper, true);
+      renderInColumns(spanishWords, spanishWrapper, false);
+    }
+
+    function renderInColumns(wordsArray, container, isEnglish) {
+      container.innerHTML = "";
+
+      const rowsPerColumn = 8;
+      const numColumns = Math.ceil(wordsArray.length / rowsPerColumn);
+
+      for (let i = 0; i < numColumns; i++) {
+        const col = document.createElement("div");
+        col.className = "column";
+
+        for (let j = 0; j < rowsPerColumn; j++) {
+          const index = i * rowsPerColumn + j;
+          if (index >= wordsArray.length) break;
+
+          const wordObj = wordsArray[index];
+          const word = document.createElement("div");
+          word.className = "word";
+          word.textContent = isEnglish ? wordObj.en : wordObj.es;
+
+          if (isEnglish) {
+            word.onclick = () => selectEnglish(wordObj.en, word);
+          } else {
+            word.onclick = () => selectSpanish(wordObj.es, word);
+          }
+
+          col.appendChild(word);
+        }
+        container.appendChild(col);
+      }
+    }
+
+    function selectEnglish(word, element) {
+      if (matchedPairs.includes(word)) return;
+      speak(word);
+      document.querySelectorAll('#english-wrapper .word').forEach(w => w.classList.remove("selected"));
+      selectedEnglish = word;
+      element.classList.add("selected");
+    }
+
+    function selectSpanish(spanishWord, spanishElement) {
+      if (!selectedEnglish) return;
+
+      const pair = currentWords.find(w => w.en === selectedEnglish);
+      const englishElements = document.querySelectorAll("#english-wrapper .word");
+
+      if (pair && pair.es === spanishWord) {
+        matchedPairs.push(selectedEnglish);
+        spanishElement.classList.add("matched");
+
+        englishElements.forEach(el => {
+          if (el.textContent === selectedEnglish) {
+            el.classList.add("matched");
+            el.classList.remove("selected");
+          }
+        });
+
+        if (matchedPairs.length === currentWords.length) {
+          if (palabrasRevisadas.length < allWords.length) {
+            document.querySelector(".next-level").classList.remove("hidden");
+          } else {
+            document.getElementById("end-message").classList.remove("hidden");
+          }
+        }
+
+      } else {
+        spanishElement.classList.add("incorrect");
+        setTimeout(() => spanishElement.classList.remove("incorrect"), 1000);
+      }
+
+      selectedEnglish = null;
+      englishElements.forEach(w => w.classList.remove("selected"));
+    }
+
+    startGame();
+  </script>
+</body>
+</html>
