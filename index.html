@@ -171,7 +171,7 @@
     ];
 
     let nivel = 0;
-    const palabrasPorNivel = 8;
+    const palabrasPorNivel = 6;
     let palabrasRevisadas = [];
     let currentWords = [];
     let selectedEnglish = null;
@@ -229,7 +229,7 @@
     function renderInColumns(wordsArray, container, isEnglish) {
       container.innerHTML = "";
 
-      const rowsPerColumn = 8;
+      const rowsPerColumn = 6;
       const numColumns = Math.ceil(wordsArray.length / rowsPerColumn);
 
       for (let i = 0; i < numColumns; i++) {
